@@ -1,0 +1,226 @@
+import React, { useState } from 'react';
+import { useDraft } from '../context/DraftContext';
+import { Trophy, AlertCircle, ChevronLeft, UserPlus, Undo2, Search } from 'lucide-react';
+
+const LiveDraftView = () => {
+  const { 
+    teams, currentTeam, isDraftComplete, pickHistory, 
+    players, availablePlayers, draftPlayer, undoLastPick,
+    DRAFT_SEQUENCE, currentPickIndex, MAX_PICKS 
+  } = useDraft();
+
+  const [showSelector, setShowSelector] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('ia');
+
+  if (isDraftComplete) {
+    return (
+      <div className="glass-card text-center animate-slide-up" style={{border: '1px solid var(--accent-neon)'}}>
+        <Trophy size={64} className="text-neon mx-auto mb-4" style={{margin: '0 auto'}}/>
+        <h2 className="text-2xl mb-2">Draft Terminé !</h2>
+        <p className="text-muted mb-4">Les équipes sont maintenant complètes.</p>
+        <button className="btn-secondary" onClick={undoLastPick}>
+          <Undo2 size={18} /> Annuler le dernier choix
+        </button>
+      </div>
+    );
+  }
+
+  // Next teams preview
+  const nextPicks = DRAFT_SEQUENCE.slice(currentPickIndex + 1, currentPickIndex + 4)
+    .map(idx => teams[idx]);
+
+  const handleDraftPlayer = (playerId) => {
+    draftPlayer(playerId);
+    setShowSelector(false);
+    setSearch('');
+  };
+
+  // --- MOTEUR INTELLIGENT DE RECOMMANDATION (ALGORITHME) ---
+  // 1. Analyser l'alignement actuel de l'équipe "On the clock"
+  const currentTeamRoster = players.filter(p => p.draftedBy === currentTeam?.id);
+  const qbCount = currentTeamRoster.filter(p => p.position === 'Quarterback (QB)').length;
+  const cCount = currentTeamRoster.filter(p => p.position === 'Centre (C)').length;
+  const rCount = currentTeamRoster.filter(p => p.position === 'Rusher (R)').length;
+
+  // 2. Assigner une note pénalisée ou bonifiée selon les besoins
+  const getDynamicScore = (player) => {
+    let score = parseFloat(player.globalScore);
+
+    if (player.position === 'Quarterback (QB)') {
+      if (qbCount > 0) score -= 6; // Pénalité extrême : n'a pas besoin de 2 QB
+      else score += 2; // Bonus massif : très urgent
+    }
+    
+    if (player.position === 'Centre (C)') {
+      if (cCount > 0) score -= 3; // Pénalité : a déjà un centre
+      else score += 0.5; // Bonus : besoin normal
+    }
+
+    if (player.position === 'Rusher (R)') {
+      if (rCount > 0) score -= 3;
+      else score += 0.5;
+    }
+
+    return score;
+  };
+
+  // 3. Appliquer la note dynamique et trier
+  const dynamicAvailablePlayers = availablePlayers.map(p => ({
+    ...p,
+    dynamicScore: getDynamicScore(p),
+    isUrgentNeed: getDynamicScore(p) > parseFloat(p.globalScore) // Si le score a été boosté
+  })).sort((a, b) => {
+    if (sortBy === 'ia') return b.dynamicScore - a.dynamicScore;
+    if (sortBy === 'speed') return b.speed - a.speed;
+    if (sortBy === 'hands') return b.hands - a.hands;
+    if (sortBy === 'flag') return b.flag - a.flag;
+    if (sortBy === 'iq') return b.iq - a.iq;
+    return b.dynamicScore - a.dynamicScore;
+  });
+
+  const filteredAvailable = dynamicAvailablePlayers.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+
+  // Render Selector Modal
+  if (showSelector) {
+    return (
+      <div className="animate-slide-up">
+        <div className="flex-between mb-4">
+          <button className="btn-secondary" onClick={() => setShowSelector(false)}>
+            <ChevronLeft size={20} /> Retour
+          </button>
+          <span className="text-muted">Sélection pour <strong className="text-neon">{currentTeam.name}</strong></span>
+        </div>
+
+        <div className="search-bar mb-4" style={{display: 'flex', gap: '0.5rem', flexDirection: 'column'}}>
+          <div style={{position: 'relative', width: '100%'}}>
+            <Search size={18} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)'}} />
+            <input 
+              type="text" 
+              className="input-field" 
+              style={{paddingLeft: '2.5rem', width: '100%'}}
+              placeholder="Rechercher une joueuse..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+            <span style={{color: 'var(--text-muted)', fontSize: '0.9rem', whiteSpace: 'nowrap'}}>Trier :</span>
+            <select 
+              className="input-field" 
+              style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem'}}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="ia">✨ Reco IA (Besoins)</option>
+              <option value="speed">⚡ Top Vitesse</option>
+              <option value="hands">👐 Top Attrape</option>
+              <option value="flag">🚩 Top Défalage</option>
+              <option value="iq">🧠 Top QI Foot</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="players-list">
+          {filteredAvailable.length === 0 ? (
+            <div className="text-center p-4 glass-card text-muted">
+              Aucune joueuse disponible. Avez-vous ajouté des joueuses dans la section "Scouting" ?
+            </div>
+          ) : (
+            filteredAvailable.map((player, index) => (
+              <div key={player.id} className="player-card cursor-pointer" onClick={() => handleDraftPlayer(player.id)}>
+                <div style={{flex: 1}}>
+                  <div className="flex items-center gap-2 mb-1" style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                    {index === 0 && search === '' && (
+                      <span style={{fontSize: '0.7rem', background: player.isUrgentNeed ? '#ef4444' : 'var(--accent-neon)', color: player.isUrgentNeed ? '#fff' : '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold'}}>
+                        {player.isUrgentNeed ? '⚡ BESOIN URGENT' : 'RECOMMENDATION N°1'}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem'}}>
+                    <span style={{fontWeight: 800, fontSize: '1.2rem'}}>{player.name}</span>
+                    <span className={`score-badge ${player.globalScore >= 8.5 ? 'elite' : player.globalScore >= 7.0 ? 'high' : player.globalScore >= 5.5 ? 'med' : ''}`}>
+                      ⭐ {player.globalScore}
+                    </span>
+                  </div>
+                  <div className="text-muted" style={{fontSize: '0.8rem'}}>Pos: {player.position} {player.notes ? `• ${player.notes}` : ''}</div>
+                  
+                  <div className="stats-grid">
+                    <div className="stat-item">VIT <span>{player.speed}</span></div>
+                    <div className="stat-item">ATT <span>{player.hands}</span></div>
+                    <div className="stat-item">FLG <span>{player.flag}</span></div>
+                    <div className="stat-item">QI <span>{player.iq}</span></div>
+                  </div>
+                </div>
+                
+                <button className="btn-icon" style={{color: 'var(--accent-neon)', marginLeft: '0.5rem'}}>
+                  <UserPlus size={24} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Live Draft Board
+  return (
+    <div className="animate-slide-up">
+      
+      <div className="glass-card text-center mb-4 pulse-active" style={{border: '1px solid var(--accent-neon)', background: 'rgba(16, 185, 129, 0.05)'}}>
+        <p className="text-muted font-bold text-sm" style={{textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.5rem'}}>À qui le tour ?</p>
+        <h2 className="title-glow" style={{fontSize: '3rem', marginBottom: '1rem', lineHeight: '1'}}>{currentTeam?.name}</h2>
+        <p className="text-muted mb-4">Tour {currentPickIndex + 1} sur {MAX_PICKS}</p>
+        
+        <button className="btn-primary" onClick={() => setShowSelector(true)}>
+          <UserPlus size={24} />
+          SELECTIONNER JOUEUSE
+        </button>
+      </div>
+
+      {nextPicks.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-sm text-muted mb-2 uppercase" style={{fontSize: '0.8rem', letterSpacing: '1px'}}>Ordre à venir</h3>
+          <div style={{display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem'}}>
+            {nextPicks.map((team, idx) => (
+              <div key={`${team.id}-${idx}`} className="glass-card" style={{padding: '0.75rem 1rem', minWidth: '120px', whiteSpace: 'nowrap'}}>
+                <span className="text-muted" style={{fontSize: '0.7rem', display: 'block'}}>Choix {currentPickIndex + idx + 2}</span>
+                <strong>{team.name}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pickHistory.length > 0 && (
+        <div className="glass-card">
+          <div className="flex-between mb-4" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <h3>Historique des choix</h3>
+            <button className="btn-secondary" onClick={undoLastPick} title="Annuler le dernier choix">
+              <Undo2 size={16} />
+            </button>
+          </div>
+          
+          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+            {[...pickHistory].reverse().slice(0, 5).map(pick => {
+               const teamName = teams.find(t => t.id === pick.teamId)?.name || 'Anonyme';
+               const playerInfo = players.find(p => p.id === pick.playerId);
+               
+               return (
+                 <div key={pick.pickNumber} className="player-card" style={{padding: '0.5rem 1rem'}}>
+                   <div>
+                     <div style={{fontSize: '0.75rem', color: 'var(--accent-neon)', fontWeight: 'bold'}}>CHOIX #{pick.pickNumber} • {teamName}</div>
+                     <div style={{fontWeight: '600'}}>{playerInfo ? playerInfo.name : 'Joueuse retirée'}</div>
+                   </div>
+                 </div>
+               );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default LiveDraftView;
