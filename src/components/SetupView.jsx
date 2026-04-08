@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useDraft } from '../context/DraftContext';
-import { Save, Trash2, RotateCcw, Download } from 'lucide-react';
+import { Save, Trash2, RotateCcw, Download, Upload, RefreshCw } from 'lucide-react';
 
 const SetupView = () => {
-  const { teams, players, pickHistory, updateTeamName, resetDraft, resetAll } = useDraft();
+  const { teams, players, pickHistory, updateTeamName, resetDraft, resetAll, importData } = useDraft();
+  const fileInputRef = useRef(null);
 
   const handleExport = () => {
     const data = {
@@ -29,9 +30,40 @@ const SetupView = () => {
     updateTeamName(index, value);
   };
 
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const jsonData = JSON.parse(event.target.result);
+        if (jsonData.teams || jsonData.players) {
+          importData(jsonData);
+          alert("Backup restauré avec succès !");
+        } else {
+           alert("Ce fichier de backup n'est pas valide.");
+        }
+      } catch (error) {
+        alert("Erreur lors de la lecture du fichier.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = null;
+  };
+
+  const forceRefresh = () => {
+    window.location.reload(true);
+  };
+
   return (
     <div className="animate-slide-up">
-      <h2 className="text-2xl mb-4 text-neon">Paramètres ⚙️</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl text-neon m-0">Paramètres ⚙️</h2>
+        <button onClick={forceRefresh} className="btn-secondary" style={{padding: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+          <RefreshCw size={16} /> Forcer MÀJ
+        </button>
+      </div>
       
       <div className="glass-card mb-4">
         <h3 className="mb-2">Noms des Équipes</h3>
@@ -56,14 +88,29 @@ const SetupView = () => {
       <div className="glass-card mb-4">
         <h3 className="mb-2" style={{color: 'var(--accent-neon)'}}>Sauvegarde</h3>
         <p className="text-muted mb-4" style={{fontSize: '0.875rem'}}>
-          Exporte toutes les données (joueuses, équipes et historique du repêchage) dans un fichier de secours sur ton appareil.
+          Exporte toutes tes données, ou restaure une ancienne sauvegarde.
         </p>
 
-        <button onClick={handleExport} className="btn-secondary" style={{width: '100%', borderColor: 'var(--accent-neon)', color: 'var(--text-main)'}}>
-          <Download size={18} className="text-neon" />
-          Exporter les données (Backup)
-        </button>
+        <div className="flex flex-col gap-2">
+          <button onClick={handleExport} className="btn-secondary" style={{width: '100%', borderColor: 'var(--accent-neon)', color: 'var(--text-main)'}}>
+            <Download size={18} className="text-neon" />
+            Exporter les données (Backup)
+          </button>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImport} 
+            accept=".json" 
+            style={{display: 'none'}} 
+          />
+          <button onClick={() => fileInputRef.current.click()} className="btn-secondary" style={{width: '100%'}}>
+            <Upload size={18} />
+            Importer un fichier Backup (.json)
+          </button>
+        </div>
       </div>
+
 
       <div className="glass-card mb-4">
         <h3 className="mb-2" style={{color: 'var(--danger)'}}>Zone Danger</h3>

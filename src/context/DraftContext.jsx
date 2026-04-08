@@ -139,8 +139,13 @@ export const DraftProvider = ({ children }) => {
         { id: uuidv4(), name: 'Wolves' }
       ]);
      }
-  }
+  };
 
+  const importData = (importedData) => {
+    if (importedData.teams) setTeams(importedData.teams);
+    if (importedData.players) setPlayers(importedData.players);
+    if (importedData.pickHistory) setPickHistory(importedData.pickHistory);
+  };
   // Derived state
   const availablePlayers = players.filter(p => !p.isDrafted).sort((a, b) => b.globalScore - a.globalScore);
 
@@ -160,6 +165,7 @@ export const DraftProvider = ({ children }) => {
     undoLastPick,
     resetDraft,
     resetAll,
+    importData,
     DRAFT_SEQUENCE,
     MAX_PICKS
   };
