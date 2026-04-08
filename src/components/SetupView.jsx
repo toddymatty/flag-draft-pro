@@ -3,7 +3,7 @@ import { useDraft } from '../context/DraftContext';
 import { Save, Trash2, RotateCcw, Download, Upload, RefreshCw } from 'lucide-react';
 
 const SetupView = () => {
-  const { teams, players, pickHistory, updateTeamName, resetDraft, resetAll, importData } = useDraft();
+  const { teams, players, pickHistory, updateTeamName, resetDraft, resetAll, importData, draftSettings, updateDraftSettings, currentPickIndex } = useDraft();
   const fileInputRef = useRef(null);
 
   const handleExport = () => {
@@ -65,6 +65,50 @@ const SetupView = () => {
         </button>
       </div>
       
+      <div className="glass-card mb-4">
+        <h3 className="mb-2">Structure du Draft</h3>
+        <p className="text-muted mb-4" style={{fontSize: '0.875rem'}}>
+          Ces réglages sont bloqués une fois que le repêchage a commencé.
+        </p>
+
+        <div className="form-group">
+          <label>Nombre d'équipes ({draftSettings.numTeams})</label>
+          <input 
+            type="range" 
+            min="2" max="10" 
+            value={draftSettings.numTeams}
+            onChange={(e) => updateDraftSettings({ numTeams: parseInt(e.target.value) })}
+            disabled={currentPickIndex > 0}
+            className="w-full"
+          />
+        </div>
+
+        <div className="form-group mt-4">
+          <label>Joueuses par équipe / Rondes ({draftSettings.numRounds})</label>
+          <input 
+            type="range" 
+            min="1" max="25" 
+            value={draftSettings.numRounds}
+            onChange={(e) => updateDraftSettings({ numRounds: parseInt(e.target.value) })}
+            disabled={currentPickIndex > 0}
+            className="w-full"
+          />
+        </div>
+
+        <div className="form-group mt-4">
+          <label>Max. Extérieur / Recrues (Total Ligue: {draftSettings.maxRookiesTotal})</label>
+          <input 
+            type="range" 
+            min="0" max="50" 
+            value={draftSettings.maxRookiesTotal}
+            onChange={(e) => updateDraftSettings({ maxRookiesTotal: parseInt(e.target.value) })}
+            disabled={currentPickIndex > 0}
+            className="w-full"
+          />
+          <p className="text-muted mt-1" style={{fontSize: '0.75rem'}}>Dès que ce nombre de recrues est repêché au total, les autres deviennent bloquées.</p>
+        </div>
+      </div>
+
       <div className="glass-card mb-4">
         <h3 className="mb-2">Noms des Équipes</h3>
         <p className="text-muted mb-4" style={{fontSize: '0.875rem'}}>

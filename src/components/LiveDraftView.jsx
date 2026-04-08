@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useDraft } from '../context/DraftContext';
-import { Trophy, AlertCircle, ChevronLeft, UserPlus, Undo2, Search } from 'lucide-react';
+import { Trophy, AlertCircle, ChevronLeft, UserPlus, Undo2, Search, Leaf, Lock } from 'lucide-react';
 
 const LiveDraftView = () => {
   const { 
     teams, currentTeam, isDraftComplete, pickHistory, 
     players, availablePlayers, draftPlayer, undoLastPick,
-    DRAFT_SEQUENCE, currentPickIndex, MAX_PICKS 
+    DRAFT_SEQUENCE, currentPickIndex, MAX_PICKS, draftSettings
   } = useDraft();
 
   const [showSelector, setShowSelector] = useState(false);
@@ -35,6 +35,10 @@ const LiveDraftView = () => {
     setShowSelector(false);
     setSearch('');
   };
+
+  const draftedPlayers = players.filter(p => p.isDrafted);
+  const rookiesDraftedCount = draftedPlayers.filter(p => p.isRookie).length;
+  const maxRookiesReached = rookiesDraftedCount >= draftSettings.maxRookiesTotal;
 
   // --- MOTEUR INTELLIGENT DE RECOMMANDATION (ALGORITHME) ---
   // 1. Analyser l'alignement actuel de l'équipe "On the clock"
@@ -129,38 +133,52 @@ const LiveDraftView = () => {
               Aucune joueuse disponible. Avez-vous ajouté des joueuses dans la section "Scouting" ?
             </div>
           ) : (
-            filteredAvailable.map((player, index) => (
-              <div key={player.id} className="player-card cursor-pointer" onClick={() => handleDraftPlayer(player.id)}>
-                <div style={{flex: 1}}>
-                  <div className="flex items-center gap-2 mb-1" style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                    {index === 0 && search === '' && (
-                      <span style={{fontSize: '0.7rem', background: player.isUrgentNeed ? '#ef4444' : 'var(--accent-neon)', color: player.isUrgentNeed ? '#fff' : '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold'}}>
-                        {player.isUrgentNeed ? '⚡ BESOIN URGENT' : 'RECOMMENDATION N°1'}
+            filteredAvailable.map((player, index) => {
+              const blokedAsRookie = player.isRookie && maxRookiesReached;
+              
+              return (
+                <div key={player.id} className="player-card cursor-pointer" onClick={() => !blokedAsRookie && handleDraftPlayer(player.id)} style={{opacity: blokedAsRookie ? 0.5 : 1, filter: blokedAsRookie ? 'grayscale(100%)' : 'none', cursor: blokedAsRookie ? 'not-allowed' : 'pointer'}}>
+                  <div style={{flex: 1}}>
+                    <div className="flex items-center gap-2 mb-1" style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                      {index === 0 && search === '' && !blokedAsRookie && (
+                        <span style={{fontSize: '0.7rem', background: player.isUrgentNeed ? '#ef4444' : 'var(--accent-neon)', color: player.isUrgentNeed ? '#fff' : '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold'}}>
+                          {player.isUrgentNeed ? '⚡ BESOIN URGENT' : 'RECOMMENDATION N°1'}
+                        </span>
+                      )}
+                      {player.isRookie && (
+                        <span style={{fontSize: '0.7rem', background: blokedAsRookie ? 'rgba(255, 255, 255, 0.2)' : 'rgba(34, 197, 94, 0.2)', padding: '2px 6px', borderRadius: '4px', color: blokedAsRookie ? '#bbb' : '#4ade80', display: 'flex', alignItems: 'center', gap: '2px', border: blokedAsRookie ? '1px solid #777' : '1px solid #4ade80'}}>
+                          <Leaf size={10} /> RECRUE
+                        </span>
+                      )}
+                      {blokedAsRookie && (
+                        <span style={{fontSize: '0.7rem', background: '#ef4444', padding: '2px 6px', borderRadius: '4px', color:'white', display: 'flex', alignItems: 'center', gap: '2px'}}>
+                          <Lock size={10} /> BLOQUÉE (LIMITE)
+                        </span>
+                      )}
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem'}}>
+                      <span style={{fontWeight: 800, fontSize: '1.2rem'}}>{player.name}</span>
+                      <span className={`score-badge ${player.globalScore >= 8.5 ? 'elite' : player.globalScore >= 7.0 ? 'high' : player.globalScore >= 5.5 ? 'med' : ''}`}>
+                        ⭐ {player.globalScore}
                       </span>
-                    )}
+                    </div>
+                    <div className="text-muted" style={{fontSize: '0.8rem'}}>Pos: {player.position} {player.notes ? `• ${player.notes}` : ''}</div>
+                    
+                    <div className="stats-grid">
+                      <div className="stat-item">VIT <span>{player.speed}</span></div>
+                      <div className="stat-item">ATT <span>{player.hands}</span></div>
+                      <div className="stat-item">FLG <span>{player.flag}</span></div>
+                      <div className="stat-item">QI <span>{player.iq}</span></div>
+                      <div className="stat-item">ESP <span>{player.sportsmanship || 5}</span></div>
+                    </div>
                   </div>
-                  <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem'}}>
-                    <span style={{fontWeight: 800, fontSize: '1.2rem'}}>{player.name}</span>
-                    <span className={`score-badge ${player.globalScore >= 8.5 ? 'elite' : player.globalScore >= 7.0 ? 'high' : player.globalScore >= 5.5 ? 'med' : ''}`}>
-                      ⭐ {player.globalScore}
-                    </span>
-                  </div>
-                  <div className="text-muted" style={{fontSize: '0.8rem'}}>Pos: {player.position} {player.notes ? `• ${player.notes}` : ''}</div>
                   
-                  <div className="stats-grid">
-                    <div className="stat-item">VIT <span>{player.speed}</span></div>
-                    <div className="stat-item">ATT <span>{player.hands}</span></div>
-                    <div className="stat-item">FLG <span>{player.flag}</span></div>
-                    <div className="stat-item">QI <span>{player.iq}</span></div>
-                    <div className="stat-item">ESP <span>{player.sportsmanship || 5}</span></div>
-                  </div>
+                  <button className="btn-icon" style={{color: blokedAsRookie ? '#777' : 'var(--accent-neon)', marginLeft: '0.5rem'}} disabled={blokedAsRookie}>
+                    {blokedAsRookie ? <Lock size={24} /> : <UserPlus size={24} />}
+                  </button>
                 </div>
-                
-                <button className="btn-icon" style={{color: 'var(--accent-neon)', marginLeft: '0.5rem'}}>
-                  <UserPlus size={24} />
-                </button>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -175,6 +193,12 @@ const LiveDraftView = () => {
         <p className="text-muted font-bold text-sm" style={{textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.5rem'}}>À qui le tour ?</p>
         <h2 className="title-glow" style={{fontSize: '3rem', marginBottom: '1rem', lineHeight: '1'}}>{currentTeam?.name}</h2>
         <p className="text-muted mb-4">Tour {currentPickIndex + 1} sur {MAX_PICKS}</p>
+        
+        <div style={{display: 'flex', justifyContent: 'center', marginBottom: '1.5rem'}}>
+          <span style={{background: 'rgba(34, 197, 94, 0.1)', color: '#4ade80', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #4ade80'}}>
+            <Leaf size={14} /> Recrues global: {rookiesDraftedCount} / {draftSettings.maxRookiesTotal}
+          </span>
+        </div>
         
         <button className="btn-primary" onClick={() => setShowSelector(true)}>
           <UserPlus size={24} />

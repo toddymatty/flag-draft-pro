@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDraft } from '../context/DraftContext';
-import { Plus, Trash2, Search, Zap, Hand, Flag, Brain, Save, Pencil, Heart } from 'lucide-react';
+import { Plus, Trash2, Search, Zap, Hand, Flag, Brain, Save, Pencil, Heart, Leaf } from 'lucide-react';
 
 const ScoutingView = () => {
   const { players, addPlayer, deletePlayer, updatePlayer } = useDraft();
@@ -16,6 +16,7 @@ const ScoutingView = () => {
     flag: 5,
     iq: 5,
     sportsmanship: 5,
+    isRookie: false,
     notes: ''
   });
 
@@ -28,6 +29,7 @@ const ScoutingView = () => {
       flag: player.flag,
       iq: player.iq,
       sportsmanship: player.sportsmanship || 5,
+      isRookie: player.isRookie || false,
       notes: player.notes || ''
     });
     setEditingId(player.id);
@@ -38,7 +40,7 @@ const ScoutingView = () => {
 
   const resetForm = () => {
     setFormData({
-      name: '', position: 'Polyvalente', speed: 5, hands: 5, flag: 5, iq: 5, sportsmanship: 5, notes: ''
+      name: '', position: 'Polyvalente', speed: 5, hands: 5, flag: 5, iq: 5, sportsmanship: 5, isRookie: false, notes: ''
     });
     setEditingId(null);
     setShowAddForm(false);
@@ -124,6 +126,18 @@ const ScoutingView = () => {
             </div>
           </div>
 
+          <div className="form-group mb-4">
+            <label className="flex items-center gap-2 cursor-pointer p-2 glass-card" style={{border: '1px solid var(--accent-neon)'}}>
+              <input 
+                type="checkbox" 
+                checked={formData.isRookie} 
+                onChange={e => setFormData({...formData, isRookie: e.target.checked})} 
+                style={{width: '20px', height: '20px', accentColor: 'var(--accent-neon)'}}
+              />
+              <span className="flex items-center gap-1 font-bold text-neon"><Leaf size={16}/> C'est une Recrue</span>
+            </label>
+          </div>
+
           <div className="form-group">
             <label>Notes (Optionnel)</label>
             <input type="text" className="input-field" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Rapide mais petite..." />
@@ -165,6 +179,11 @@ const ScoutingView = () => {
                   <span className={`score-badge ${player.globalScore >= 8.5 ? 'elite' : player.globalScore >= 7.0 ? 'high' : player.globalScore >= 5.5 ? 'med' : ''}`}>
                     ⭐ {player.globalScore}
                   </span>
+                  {player.isRookie && (
+                    <span style={{fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', padding: '2px 6px', borderRadius: '4px', color:'#4ade80', display: 'flex', alignItems: 'center', gap: '2px', border: '1px solid #4ade80'}}>
+                      <Leaf size={10} /> RECRUE
+                    </span>
+                  )}
                   {player.isDrafted && (
                     <span style={{fontSize: '0.7rem', background: '#ef4444', padding: '2px 6px', borderRadius: '4px', color:'white'}}>DRAFTÉE</span>
                   )}

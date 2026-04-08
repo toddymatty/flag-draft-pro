@@ -6,8 +6,6 @@ const DraftContext = createContext();
 
 export const useDraft = () => useContext(DraftContext);
 
-const DRAFT_SEQUENCE = [0, 1, 2, 3, 3, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 0];
-const MAX_PICKS = DRAFT_SEQUENCE.length;
 
 export const DraftProvider = ({ children }) => {
   // Try loading from localStorage
@@ -27,6 +25,12 @@ export const DraftProvider = ({ children }) => {
     { id: uuidv4(), name: 'Wolves' }
   ]));
 
+  const [draftSettings, setDraftSettings] = useState(() => loadState('draft_settings', {
+    numTeams: 4,
+    numRounds: 10,
+    maxRookiesTotal: 5
+  }));
+
   const [players, setPlayers] = useState(() => loadState('draft_players', defaultPlayers));
   const [pickHistory, setPickHistory] = useState(() => loadState('draft_history', []));
 
@@ -43,12 +47,53 @@ export const DraftProvider = ({ children }) => {
     localStorage.setItem('draft_history', JSON.stringify(pickHistory));
   }, [pickHistory]);
 
+  useEffect(() => {
+    localStorage.setItem('draft_settings', JSON.stringify(draftSettings));
+  }, [draftSettings]);
+
+  const generateSnakeDraft = (nTeams, nRounds) => {
+    const sequence = [];
+    if (nTeams <= 0 || nRounds <= 0) return sequence;
+    for (let r = 0; r < nRounds; r++) {
+      const roundSeq = [];
+      for (let t = 0; t < nTeams; t++) {
+        roundSeq.push(t);
+      }
+      // Les rondes impaires (index 1, 3, 5...) sont inversées
+      if (r % 2 !== 0) {
+        roundSeq.reverse();
+      }
+      sequence.push(...roundSeq);
+    }
+    return sequence;
+  };
+
+  const DRAFT_SEQUENCE = generateSnakeDraft(draftSettings.numTeams, draftSettings.numRounds);
+  const MAX_PICKS = DRAFT_SEQUENCE.length;
+
   const currentPickIndex = pickHistory.length;
   const isDraftComplete = currentPickIndex >= MAX_PICKS;
   const currentTeamIndex = !isDraftComplete ? DRAFT_SEQUENCE[currentPickIndex] : null;
   const currentTeam = currentTeamIndex !== null ? teams[currentTeamIndex] : null;
 
   // Actions
+  const updateDraftSettings = (newSettings) => {
+    setDraftSettings(prev => ({ ...prev, ...newSettings }));
+    
+    // Ajuster le nombre d'équipes si on le change
+    if (newSettings.numTeams && newSettings.numTeams !== teams.length) {
+      const newTeams = [...teams];
+      if (newSettings.numTeams > teams.length) {
+        for (let i = teams.length; i < newSettings.numTeams; i++) {
+          newTeams.push({ id: uuidv4(), name: `Équipe ${i + 1}` });
+        }
+      } else {
+        newTeams.length = newSettings.numTeams; // Coupe le tableau
+      }
+      setTeams(newTeams);
+    }
+  };
+
   const updateTeamName = (index, newName) => {
     const newTeams = [...teams];
     newTeams[index].name = newName;
@@ -145,6 +190,7 @@ export const DraftProvider = ({ children }) => {
     if (importedData.teams) setTeams(importedData.teams);
     if (importedData.players) setPlayers(importedData.players);
     if (importedData.pickHistory) setPickHistory(importedData.pickHistory);
+    if (importedData.draftSettings) setDraftSettings(importedData.draftSettings);
   };
   // Derived state
   const availablePlayers = players.filter(p => !p.isDrafted).sort((a, b) => b.globalScore - a.globalScore);
@@ -166,6 +212,8 @@ export const DraftProvider = ({ children }) => {
     resetDraft,
     resetAll,
     importData,
+    draftSettings,
+    updateDraftSettings,
     DRAFT_SEQUENCE,
     MAX_PICKS
   };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDraft } from '../context/DraftContext';
-import { Users, Shield } from 'lucide-react';
+import { Users, Shield, Leaf } from 'lucide-react';
 
 const RostersView = () => {
   const { teams, players } = useDraft();
@@ -23,8 +23,11 @@ const RostersView = () => {
                   <Shield size={20} className="text-neon" />
                   {team.name}
                 </h3>
-                <div className="text-muted" style={{fontSize: '0.8rem'}}>
-                  Note: <strong className="text-neon">{averageScore}</strong>
+                <div className="text-muted" style={{fontSize: '0.8rem', textAlign: 'right'}}>
+                  <div>Note: <strong className="text-neon">{averageScore}</strong></div>
+                  <div style={{color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', marginTop: '2px'}}>
+                    <Leaf size={12} /> {teamPlayers.filter(p => p.isRookie).length} recrue(s)
+                  </div>
                 </div>
               </div>
 
@@ -36,8 +39,11 @@ const RostersView = () => {
                 <>
                   <ul style={{listStyle: 'none', padding: 0, marginBottom: '1rem'}}>
                     {teamPlayers.map((player, idx) => (
-                      <li key={player.id} style={{fontSize: '0.9rem', padding: '0.5rem 0', borderBottom: idx !== teamPlayers.length - 1 ? '1px dashed rgba(255,255,255,0.05)' : 'none', display: 'flex', justifyContent: 'space-between'}}>
-                        <span><strong>{idx + 1}.</strong> {player.name}</span>
+                      <li key={player.id} style={{fontSize: '0.9rem', padding: '0.5rem 0', borderBottom: idx !== teamPlayers.length - 1 ? '1px dashed rgba(255,255,255,0.05)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                          <span><strong>{idx + 1}.</strong> {player.name}</span>
+                          {player.isRookie && <Leaf size={14} color="#4ade80" title="Recrue" />}
+                        </div>
                         <span className="text-muted" style={{fontSize: '0.8rem'}}>{player.position}</span>
                       </li>
                     ))}
