@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { defaultPlayers } from '../data/defaultPlayers';
 
 const DraftContext = createContext();
 
@@ -26,7 +27,7 @@ export const DraftProvider = ({ children }) => {
     { id: uuidv4(), name: 'Wolves' }
   ]));
 
-  const [players, setPlayers] = useState(() => loadState('draft_players', []));
+  const [players, setPlayers] = useState(() => loadState('draft_players', defaultPlayers));
   const [pickHistory, setPickHistory] = useState(() => loadState('draft_history', []));
 
   // Save to localStorage whenever state changes
@@ -55,12 +56,15 @@ export const DraftProvider = ({ children }) => {
   };
 
   const addPlayer = (playerData) => {
-    // Calcul score global = (Vitesse + Mains + Flag + QI) / 4 (sur 10)
-    const { speed, hands, flag, iq } = playerData;
-    const globalScore = (parseFloat(speed) + parseFloat(hands) + parseFloat(flag) + parseFloat(iq)) / 4;
+    // Calcul score global = (Vitesse + Mains + Flag + QI + Esprit Sportif) / 5 (sur 10)
+    const { speed, hands, flag, iq, sportsmanship } = playerData;
+    // Si la stat n'existe pas dans les vielles données, on met 5 par défaut
+    const sp = sportsmanship ? parseFloat(sportsmanship) : 5;
+    const globalScore = (parseFloat(speed) + parseFloat(hands) + parseFloat(flag) + parseFloat(iq) + sp) / 5;
     
     setPlayers(prev => [...prev, {
       ...playerData,
+      sportsmanship: sp,
       id: uuidv4(),
       globalScore: globalScore.toFixed(1),
       isDrafted: false
@@ -72,11 +76,13 @@ export const DraftProvider = ({ children }) => {
   };
 
   const updatePlayer = (id, updatedData) => {
-    const { speed, hands, flag, iq } = updatedData;
-    const globalScore = (parseFloat(speed) + parseFloat(hands) + parseFloat(flag) + parseFloat(iq)) / 4;
+    const { speed, hands, flag, iq, sportsmanship } = updatedData;
+    const sp = sportsmanship ? parseFloat(sportsmanship) : 5;
+    const globalScore = (parseFloat(speed) + parseFloat(hands) + parseFloat(flag) + parseFloat(iq) + sp) / 5;
     
     setPlayers(prev => prev.map(p => p.id === id ? { 
       ...p, ...updatedData, 
+      sportsmanship: sp,
       globalScore: globalScore.toFixed(1) 
     } : p));
   };
@@ -121,7 +127,11 @@ export const DraftProvider = ({ children }) => {
   const resetAll = () => {
      if (window.confirm("Tout supprimer (Joueuses incluses) ? Action irréversible.")) {
       setPickHistory([]);
-      setPlayers([]);
+      
+      // On remet la lites des joueuses aux valeurs d'origine pour éviter le vide total
+      const freshDefaults = defaultPlayers.map(p => ({...p, id: uuidv4()}));
+      setPlayers(freshDefaults);
+      
       setTeams([
         { id: uuidv4(), name: 'Bears' },
         { id: uuidv4(), name: 'Lions' },

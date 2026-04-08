@@ -76,6 +76,7 @@ const LiveDraftView = () => {
     if (sortBy === 'hands') return b.hands - a.hands;
     if (sortBy === 'flag') return b.flag - a.flag;
     if (sortBy === 'iq') return b.iq - a.iq;
+    if (sortBy === 'sportsmanship') return (b.sportsmanship || 5) - (a.sportsmanship || 5);
     return b.dynamicScore - a.dynamicScore;
   });
 
@@ -117,6 +118,7 @@ const LiveDraftView = () => {
               <option value="hands">👐 Top Attrape</option>
               <option value="flag">🚩 Top Défalage</option>
               <option value="iq">🧠 Top QI Foot</option>
+              <option value="sportsmanship">❤️ Top Esprit Sportif</option>
             </select>
           </div>
         </div>
@@ -150,6 +152,7 @@ const LiveDraftView = () => {
                     <div className="stat-item">ATT <span>{player.hands}</span></div>
                     <div className="stat-item">FLG <span>{player.flag}</span></div>
                     <div className="stat-item">QI <span>{player.iq}</span></div>
+                    <div className="stat-item">ESP <span>{player.sportsmanship || 5}</span></div>
                   </div>
                 </div>
                 

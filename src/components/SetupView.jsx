@@ -1,9 +1,29 @@
 import React from 'react';
 import { useDraft } from '../context/DraftContext';
-import { Save, Trash2, RotateCcw } from 'lucide-react';
+import { Save, Trash2, RotateCcw, Download } from 'lucide-react';
 
 const SetupView = () => {
-  const { teams, updateTeamName, resetDraft, resetAll } = useDraft();
+  const { teams, players, pickHistory, updateTeamName, resetDraft, resetAll } = useDraft();
+
+  const handleExport = () => {
+    const data = {
+      teams,
+      players,
+      pickHistory,
+      exportDate: new Date().toISOString()
+    };
+    
+    // Create a blob and trigger download
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `flag_draft_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const handleNameChange = (index, value) => {
     updateTeamName(index, value);
@@ -31,6 +51,18 @@ const SetupView = () => {
             />
           </div>
         ))}
+      </div>
+
+      <div className="glass-card mb-4">
+        <h3 className="mb-2" style={{color: 'var(--accent-neon)'}}>Sauvegarde</h3>
+        <p className="text-muted mb-4" style={{fontSize: '0.875rem'}}>
+          Exporte toutes les données (joueuses, équipes et historique du repêchage) dans un fichier de secours sur ton appareil.
+        </p>
+
+        <button onClick={handleExport} className="btn-secondary" style={{width: '100%', borderColor: 'var(--accent-neon)', color: 'var(--text-main)'}}>
+          <Download size={18} className="text-neon" />
+          Exporter les données (Backup)
+        </button>
       </div>
 
       <div className="glass-card mb-4">

@@ -50,6 +50,7 @@ const RostersView = () => {
                       <div className="stat-item">ATT <span>{teamPlayers.length > 0 ? (teamPlayers.reduce((acc, p) => acc + parseFloat(p.hands), 0) / teamPlayers.length).toFixed(1) : 0}</span></div>
                       <div className="stat-item">FLG <span>{teamPlayers.length > 0 ? (teamPlayers.reduce((acc, p) => acc + parseFloat(p.flag), 0) / teamPlayers.length).toFixed(1) : 0}</span></div>
                       <div className="stat-item">QI <span>{teamPlayers.length > 0 ? (teamPlayers.reduce((acc, p) => acc + parseFloat(p.iq), 0) / teamPlayers.length).toFixed(1) : 0}</span></div>
+                      <div className="stat-item">ESP <span>{teamPlayers.length > 0 ? (teamPlayers.reduce((acc, p) => acc + parseFloat(p.sportsmanship || 5), 0) / teamPlayers.length).toFixed(1) : 0}</span></div>
                     </div>
                   </div>
                 </>

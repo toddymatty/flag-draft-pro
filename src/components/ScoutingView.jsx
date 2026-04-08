@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDraft } from '../context/DraftContext';
-import { Plus, Trash2, Search, Zap, Hand, Flag, Brain, Save, Pencil } from 'lucide-react';
+import { Plus, Trash2, Search, Zap, Hand, Flag, Brain, Save, Pencil, Heart } from 'lucide-react';
 
 const ScoutingView = () => {
   const { players, addPlayer, deletePlayer, updatePlayer } = useDraft();
@@ -15,6 +15,7 @@ const ScoutingView = () => {
     hands: 5,
     flag: 5,
     iq: 5,
+    sportsmanship: 5,
     notes: ''
   });
 
@@ -26,6 +27,7 @@ const ScoutingView = () => {
       hands: player.hands,
       flag: player.flag,
       iq: player.iq,
+      sportsmanship: player.sportsmanship || 5,
       notes: player.notes || ''
     });
     setEditingId(player.id);
@@ -36,7 +38,7 @@ const ScoutingView = () => {
 
   const resetForm = () => {
     setFormData({
-      name: '', position: 'Polyvalente', speed: 5, hands: 5, flag: 5, iq: 5, notes: ''
+      name: '', position: 'Polyvalente', speed: 5, hands: 5, flag: 5, iq: 5, sportsmanship: 5, notes: ''
     });
     setEditingId(null);
     setShowAddForm(false);
@@ -82,6 +84,7 @@ const ScoutingView = () => {
             <label>Position principale</label>
             <select className="input-field" value={formData.position} onChange={e => setFormData({...formData, position: e.target.value})}>
               <option>Polyvalente</option>
+              <option>Capitaine</option>
               <option>Quarterback (QB)</option>
               <option>Receveuse (WR)</option>
               <option>Demi Défensif (DB)</option>
@@ -112,6 +115,11 @@ const ScoutingView = () => {
               <div className="form-group">
                 <label className="flex items-center gap-1"><Brain size={14}/> QI Football</label>
                 <input type="number" min="1" max="10" className="input-field" value={formData.iq} onChange={e => setFormData({...formData, iq: e.target.value})} required/>
+              </div>
+
+              <div className="form-group">
+                <label className="flex items-center gap-1"><Heart size={14}/> Esprit Sportif</label>
+                <input type="number" min="1" max="10" className="input-field" value={formData.sportsmanship} onChange={e => setFormData({...formData, sportsmanship: e.target.value})} required/>
               </div>
             </div>
           </div>
@@ -168,6 +176,7 @@ const ScoutingView = () => {
                   <div className="stat-item">ATT <span>{player.hands}</span></div>
                   <div className="stat-item">FLG <span>{player.flag}</span></div>
                   <div className="stat-item">QI <span>{player.iq}</span></div>
+                  <div className="stat-item">ESP <span>{player.sportsmanship || 5}</span></div>
                 </div>
               </div>
 
