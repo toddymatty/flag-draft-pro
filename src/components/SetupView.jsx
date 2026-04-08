@@ -3,7 +3,7 @@ import { useDraft } from '../context/DraftContext';
 import { Save, Trash2, RotateCcw, Download, Upload, RefreshCw } from 'lucide-react';
 
 const SetupView = () => {
-  const { teams, players, pickHistory, updateTeamName, resetDraft, resetAll, importData, draftSettings, updateDraftSettings, currentPickIndex } = useDraft();
+  const { teams, players, pickHistory, updateTeamName, resetDraft, resetAll, importData, draftSettings, updateDraftSettings, currentPickIndex, assignCaptain } = useDraft();
   const fileInputRef = useRef(null);
 
   const handleExport = () => {
@@ -115,18 +115,60 @@ const SetupView = () => {
           L'ordre du draft sera déterminé selon ces équipes : 1-2-3-4-4-3-2-1...
         </p>
 
-        {teams.map((team, index) => (
-          <div key={team.id} className="form-group">
-            <label>Position {index + 1}</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              value={team.name}
-              onChange={(e) => handleNameChange(index, e.target.value)}
-              placeholder={`Équipe ${index + 1}`}
-            />
-          </div>
-        ))}
+        {teams.map((team, index) => {
+          const captain1 = players.find(p => p.isCaptain && p.captainTeamId === team.id && p.captainSlot === 1);
+          const captain2 = players.find(p => p.isCaptain && p.captainTeamId === team.id && p.captainSlot === 2);
+
+          return (
+            <div key={team.id} className="form-group" style={{marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: index < teams.length - 1 ? '1px dashed rgba(255,255,255,0.1)' : 'none'}}>
+              <label>Position {index + 1} & Nom</label>
+              <input 
+                type="text" 
+                className="input-field mb-2" 
+                value={team.name}
+                onChange={(e) => handleNameChange(index, e.target.value)}
+                placeholder={`Équipe ${index + 1}`}
+              />
+              
+              <div style={{display: 'flex', gap: '0.5rem'}}>
+                <div style={{flex: 1}}>
+                  <select 
+                    className="input-field" 
+                    style={{fontSize: '0.8rem', padding: '0.5rem'}}
+                    value={captain1 ? captain1.id : ''}
+                    onChange={(e) => assignCaptain(team.id, 1, e.target.value)}
+                    disabled={currentPickIndex > 0}
+                  >
+                    <option value="">-- Capitaine 1 --</option>
+                    {players.map(p => {
+                      if (!p.isDrafted || p.id === captain1?.id) {
+                        return <option key={p.id} value={p.id}>{p.name} {p.isRookie ? '🌿' : ''}</option>;
+                      }
+                      return null;
+                    })}
+                  </select>
+                </div>
+                <div style={{flex: 1}}>
+                  <select 
+                    className="input-field" 
+                    style={{fontSize: '0.8rem', padding: '0.5rem'}}
+                    value={captain2 ? captain2.id : ''}
+                    onChange={(e) => assignCaptain(team.id, 2, e.target.value)}
+                    disabled={currentPickIndex > 0}
+                  >
+                    <option value="">-- Capitaine 2 --</option>
+                    {players.map(p => {
+                      if (!p.isDrafted || p.id === captain2?.id) {
+                        return <option key={p.id} value={p.id}>{p.name} {p.isRookie ? '🌿' : ''}</option>;
+                      }
+                      return null;
+                    })}
+                  </select>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="glass-card mb-4">

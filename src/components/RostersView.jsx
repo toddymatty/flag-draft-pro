@@ -42,6 +42,7 @@ const RostersView = () => {
                       <li key={player.id} style={{fontSize: '0.9rem', padding: '0.5rem 0', borderBottom: idx !== teamPlayers.length - 1 ? '1px dashed rgba(255,255,255,0.05)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                           <span><strong>{idx + 1}.</strong> {player.name}</span>
+                          {player.isCaptain && <span title="Capitaine" style={{fontSize: '14px'}}>👑</span>}
                           {player.isRookie && <Leaf size={14} color="#4ade80" title="Recrue" />}
                         </div>
                         <span className="text-muted" style={{fontSize: '0.8rem'}}>{player.position}</span>

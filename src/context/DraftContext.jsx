@@ -165,8 +165,39 @@ export const DraftProvider = ({ children }) => {
   const resetDraft = () => {
     if (window.confirm("Êtes-vous sûr de vouloir tout réinitialiser ? Cela gardera les joueuses mais effacera le statut du repêchage.")) {
       setPickHistory([]);
-      setPlayers(prev => prev.map(p => ({ ...p, isDrafted: false, draftedBy: null })));
+      setPlayers(prev => prev.map(p => {
+        if (p.isCaptain) {
+          return { ...p, isDrafted: true, draftedBy: p.captainTeamId };
+        }
+        return { ...p, isDrafted: false, draftedBy: null };
+      }));
     }
+  };
+  
+  const assignCaptain = (teamId, slot, playerId) => {
+    setPlayers(prev => prev.map(p => {
+      let newP = { ...p };
+      
+      // Libérer l'ancienne capitaine de ce slot spécifique pour cette équipe
+      if (newP.isCaptain && newP.captainTeamId === teamId && newP.captainSlot === slot) {
+        newP.isCaptain = false;
+        newP.captainTeamId = null;
+        newP.captainSlot = null;
+        newP.isDrafted = false;
+        newP.draftedBy = null;
+      }
+      
+      // Assigner la nouvelle capitaine si un ID est fourni
+      if (playerId && newP.id === playerId) {
+        newP.isCaptain = true;
+        newP.captainTeamId = teamId;
+        newP.captainSlot = slot;
+        newP.isDrafted = true; // Empêche d'être repêchée dans le Live Draft
+        newP.draftedBy = teamId; // L'assigne à l'équipe pour les Rosters
+      }
+      
+      return newP;
+    }));
   };
   
   const resetAll = () => {
@@ -212,6 +243,7 @@ export const DraftProvider = ({ children }) => {
     resetDraft,
     resetAll,
     importData,
+    assignCaptain,
     draftSettings,
     updateDraftSettings,
     DRAFT_SEQUENCE,
