@@ -6,7 +6,9 @@ const LiveDraftView = () => {
   const { 
     teams, currentTeam, isDraftComplete, pickHistory, 
     players, availablePlayers, draftPlayer, undoLastPick,
-    DRAFT_SEQUENCE, currentPickIndex, MAX_PICKS, draftSettings
+    DRAFT_SEQUENCE, currentPickIndex, MAX_PICKS, draftSettings,
+    isSimulationMode, enterSimulationMode, exitSimulationMode,
+    autoDraftPick, getPickGrade
   } = useDraft();
 
   const [showSelector, setShowSelector] = useState(false);
@@ -188,6 +190,34 @@ const LiveDraftView = () => {
   // Live Draft Board
   return (
     <div className="animate-slide-up">
+      {/* ---------- ANALYST SIMULATION CONTROLS ---------- */}
+      {isSimulationMode && (
+        <div style={{background: 'rgba(74, 222, 128, 0.1)', border: '1px solid #4ade80', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem'}}>
+          <h3 className="text-neon mb-2" style={{color: '#4ade80', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+            <span>🧬</span> MODE SIMULATION ACTIF
+          </h3>
+          <p className="text-muted" style={{fontSize: '0.85rem', marginBottom: '1rem'}}>
+            Vous êtes dans un bac-à-sable "Analyst Mock Draft". Rien ici n'affectera le vrai repêchage.
+          </p>
+          <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap'}}>
+            <button className="btn-primary" onClick={autoDraftPick} disabled={isDraftComplete} style={{flex: 1, minWidth: '120px', background: '#4ade80', color: 'black'}}>
+              Auto-Pick (BPA)
+            </button>
+            <button className="btn-secondary" onClick={exitSimulationMode} style={{flex: 1, minWidth: '120px', borderColor: '#ef4444', color: '#ef4444'}}>
+              Quitter
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isSimulationMode && !isDraftComplete && (
+         <div className="mb-4" style={{textAlign: currentPickIndex === 0 ? 'center' : 'right'}}>
+            <button onClick={enterSimulationMode} style={{background: 'transparent', border: currentPickIndex === 0 ? '1px dashed #4ade80' : '1px dashed rgba(255,255,255,0.2)', padding: '0.5rem 1rem', color: currentPickIndex === 0 ? '#4ade80' : 'var(--text-muted)', fontSize: '0.8rem', borderRadius: '4px', width: currentPickIndex === 0 ? '100%' : 'auto'}}>
+              🧬 {currentPickIndex === 0 ? 'Lancer une Simulation (Mock Draft)' : 'Simuler des scénarios'}
+            </button>
+         </div>
+      )}
+      {/* ------------------------------------------------ */}
       
       <div className="glass-card text-center mb-4 pulse-active" style={{border: '1px solid var(--accent-neon)', background: 'rgba(16, 185, 129, 0.05)'}}>
         <p className="text-muted font-bold text-sm" style={{textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.5rem'}}>À qui le tour ?</p>
@@ -230,19 +260,37 @@ const LiveDraftView = () => {
           </div>
           
           <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-            {[...pickHistory].reverse().slice(0, 5).map(pick => {
-               const teamName = teams.find(t => t.id === pick.teamId)?.name || 'Anonyme';
-               const playerInfo = players.find(p => p.id === pick.playerId);
-               
-               return (
-                 <div key={pick.pickNumber} className="player-card" style={{padding: '0.5rem 1rem'}}>
-                   <div>
-                     <div style={{fontSize: '0.75rem', color: 'var(--accent-neon)', fontWeight: 'bold'}}>CHOIX #{pick.pickNumber} • {teamName}</div>
-                     <div style={{fontWeight: '600'}}>{playerInfo ? playerInfo.name : 'Joueuse retirée'}</div>
-                   </div>
-                 </div>
-               );
-            })}
+             {[...pickHistory].reverse().slice(0, 5).map(pick => {
+                const teamName = teams.find(t => t.id === pick.teamId)?.name || 'Anonyme';
+                const playerInfo = players.find(p => p.id === pick.playerId);
+                const grade = getPickGrade(pick.playerId, pick.pickNumber);
+                
+                return (
+                  <div key={pick.pickNumber} className="player-card" style={{padding: '0.5rem 1rem'}}>
+                    <div>
+                      <div style={{fontSize: '0.75rem', color: 'var(--accent-neon)', fontWeight: 'bold'}}>CHOIX #{pick.pickNumber} • {teamName}</div>
+                      <div style={{fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                        {playerInfo ? playerInfo.name : 'Joueuse retirée'}
+                        
+                        {/* Draft Grade Badge */}
+                        {grade && grade.status !== 'NORMAL' && (
+                          <span style={{
+                            fontSize: '0.65rem', 
+                            padding: '2px 6px', 
+                            borderRadius: '4px', 
+                            background: grade.status === 'STEAL' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                            color: grade.status === 'STEAL' ? '#4ade80' : '#ef4444',
+                            border: `1px solid ${grade.status === 'STEAL' ? '#4ade80' : '#ef4444'}`,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {grade.label} {grade.diff > 0 ? `(+${grade.diff})` : `(${grade.diff})`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+             })}
           </div>
         </div>
       )}

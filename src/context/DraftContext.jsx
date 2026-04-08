@@ -34,22 +34,44 @@ export const DraftProvider = ({ children }) => {
   const [players, setPlayers] = useState(() => loadState('draft_players', defaultPlayers));
   const [pickHistory, setPickHistory] = useState(() => loadState('draft_history', []));
 
-  // Save to localStorage whenever state changes
-  useEffect(() => {
-    localStorage.setItem('draft_teams', JSON.stringify(teams));
-  }, [teams]);
+  // Analyst Simulation Mode State
+  const [isSimulationMode, setIsSimulationMode] = useState(false);
+  const [savedRealState, setSavedRealState] = useState(null);
+
+  // Calculate projected ranks based on globalScore
+  // Only for players who are not captains and are available
+  const [projectedRanks, setProjectedRanks] = useState({});
 
   useEffect(() => {
-    localStorage.setItem('draft_players', JSON.stringify(players));
-  }, [players]);
+    // Computes ranks on players change if not in simulation mode
+    if (!isSimulationMode) {
+      const nonCaptains = players.filter(p => !p.isCaptain);
+      const sorted = [...nonCaptains].sort((a, b) => parseFloat(b.globalScore) - parseFloat(a.globalScore));
+      
+      const ranks = {};
+      sorted.forEach((p, index) => {
+        ranks[p.id] = index + 1; // Rank starts at 1
+      });
+      setProjectedRanks(ranks);
+    }
+  }, [players, isSimulationMode]);
+
+  // Save to localStorage whenever state changes (only if NOT in simulation mode)
+  useEffect(() => {
+    if(!isSimulationMode) localStorage.setItem('draft_teams', JSON.stringify(teams));
+  }, [teams, isSimulationMode]);
 
   useEffect(() => {
-    localStorage.setItem('draft_history', JSON.stringify(pickHistory));
-  }, [pickHistory]);
+    if(!isSimulationMode) localStorage.setItem('draft_players', JSON.stringify(players));
+  }, [players, isSimulationMode]);
 
   useEffect(() => {
-    localStorage.setItem('draft_settings', JSON.stringify(draftSettings));
-  }, [draftSettings]);
+    if(!isSimulationMode) localStorage.setItem('draft_history', JSON.stringify(pickHistory));
+  }, [pickHistory, isSimulationMode]);
+
+  useEffect(() => {
+    if(!isSimulationMode) localStorage.setItem('draft_settings', JSON.stringify(draftSettings));
+  }, [draftSettings, isSimulationMode]);
 
   const generateSnakeDraft = (nTeams, nRounds) => {
     const sequence = [];
@@ -223,6 +245,63 @@ export const DraftProvider = ({ children }) => {
     if (importedData.pickHistory) setPickHistory(importedData.pickHistory);
     if (importedData.draftSettings) setDraftSettings(importedData.draftSettings);
   };
+
+  // ---------------- SIMULATION ENGINE ---------------- //
+  const enterSimulationMode = () => {
+    setSavedRealState({
+      pickHistory: [...pickHistory],
+      players: JSON.parse(JSON.stringify(players))
+    });
+    setIsSimulationMode(true);
+  };
+
+  const exitSimulationMode = () => {
+    if (savedRealState) {
+      setPickHistory(savedRealState.pickHistory);
+      setPlayers(savedRealState.players);
+    }
+    setIsSimulationMode(false);
+    setSavedRealState(null);
+  };
+
+  const autoDraftPick = () => {
+    if (isDraftComplete) return;
+
+    // Calculer la limite de recrues pour respecter les règles dans la simulation
+    const draftedRookiesCount = pickHistory.reduce((acc, pick) => {
+        const p = players.find(player => player.id === pick.playerId);
+        return p && p.isRookie ? acc + 1 : acc;
+    }, 0);
+
+    const isGlobalRookieLimitReached = draftedRookiesCount >= draftSettings.maxRookiesTotal;
+
+    const currentAvailable = players.filter(p => !p.isDrafted);
+    const validPlayers = isGlobalRookieLimitReached
+      ? currentAvailable.filter(p => !p.isRookie)
+      : currentAvailable;
+
+    // BPA (Best Player Available)
+    const sortedValidPlayers = validPlayers.sort((a, b) => b.globalScore - a.globalScore);
+
+    if (sortedValidPlayers.length > 0) {
+      const bpa = sortedValidPlayers[0];
+      draftPlayer(bpa.id);
+    }
+  };
+
+  const getPickGrade = (playerId, overallPickNumber) => {
+    const projRank = projectedRanks[playerId];
+    if (!projRank) return null;
+    
+    // Un nombre positif = Sélectionné plus tard que prévu (Steal)
+    // Un nombre négatif = Sélectionné plus tôt que prévu (Reach)
+    const diff = overallPickNumber - projRank;
+    
+    if (diff < -3) return { status: 'REACH', label: '🔴 REACH', diff };
+    if (diff > 3) return { status: 'STEAL', label: '🟢 STEAL', diff };
+    return { status: 'NORMAL', label: '⚪ PAIR', diff };
+  };
+
   // Derived state
   const availablePlayers = players.filter(p => !p.isDrafted).sort((a, b) => b.globalScore - a.globalScore);
 
@@ -247,7 +326,13 @@ export const DraftProvider = ({ children }) => {
     draftSettings,
     updateDraftSettings,
     DRAFT_SEQUENCE,
-    MAX_PICKS
+    MAX_PICKS,
+    isSimulationMode,
+    enterSimulationMode,
+    exitSimulationMode,
+    autoDraftPick,
+    projectedRanks,
+    getPickGrade
   };
 
   return (
